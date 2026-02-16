@@ -266,21 +266,43 @@ export function SegmentsClient({
       .update({ filter_rules: editingRules as unknown as Record<string, unknown> })
       .eq("id", selectedSegment.id);
 
-    setSavingRules(false);
     if (error) {
+      setSavingRules(false);
       toast.error("Failed to save filter rules");
-    } else {
-      setSegments(
-        segments.map((s) =>
-          s.id === selectedSegment.id
-            ? { ...s, filter_rules: editingRules }
-            : s
-        )
-      );
-      setSelectedSegment({ ...selectedSegment, filter_rules: editingRules });
-      toast.success("Filter rules saved");
-      router.refresh();
+      return;
     }
+
+    // Resolve contact count for dynamic segments
+    let resolvedCount = selectedSegment.contact_count;
+    try {
+      const res = await fetch("/api/segments/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orgId, filterRules: editingRules }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        resolvedCount = data.count ?? 0;
+        await supabase
+          .from("segments")
+          .update({ contact_count: resolvedCount })
+          .eq("id", selectedSegment.id);
+      }
+    } catch {
+      // Non-critical — count will just stay stale
+    }
+
+    setSavingRules(false);
+    setSegments(
+      segments.map((s) =>
+        s.id === selectedSegment.id
+          ? { ...s, filter_rules: editingRules, contact_count: resolvedCount }
+          : s
+      )
+    );
+    setSelectedSegment({ ...selectedSegment, filter_rules: editingRules, contact_count: resolvedCount });
+    toast.success("Filter rules saved");
+    router.refresh();
   }
 
   function startEditMeta() {
