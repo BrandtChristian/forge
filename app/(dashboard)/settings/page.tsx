@@ -40,7 +40,25 @@ export default async function SettingsPage() {
           Configure your organization and email sending.
         </p>
       </div>
-      <SettingsForm org={user.organizations} consentTypes={consentTypes ?? []} />
+      <SettingsForm
+        org={{
+          ...user.organizations,
+          // Redact API keys for demo orgs — sending still works server-side
+          ...(user.organizations.is_demo ? {
+            resend_api_key: user.organizations.resend_api_key ? "__demo_connected__" : null,
+            agillic_credentials: user.organizations.agillic_credentials ? {
+              staging_key: "••••••",
+              staging_secret: "••••••",
+              staging_url: user.organizations.agillic_credentials.staging_url,
+              prod_key: "••••••",
+              prod_secret: "••••••",
+              prod_url: user.organizations.agillic_credentials.prod_url,
+            } : null,
+          } : {}),
+        }}
+        consentTypes={consentTypes ?? []}
+        isDemo={user.organizations.is_demo}
+      />
       <TeamMembers
         members={members ?? []}
         currentUserId={user.id}

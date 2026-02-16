@@ -4,6 +4,7 @@ import { Separator } from "@/components/ui/separator";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { getCurrentUser } from "@/lib/auth/dal";
 import { FlowProvider } from "@/components/onboarding/flow-provider";
+import { DemoBanner } from "@/components/demo-banner";
 
 export default async function DashboardLayout({
   children,
@@ -16,6 +17,7 @@ export default async function DashboardLayout({
     <SidebarProvider>
       <AppSidebar emailProvider={user.organizations.email_provider} />
       <SidebarInset>
+        {user.organizations.is_demo && <DemoBanner />}
         <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4!" />

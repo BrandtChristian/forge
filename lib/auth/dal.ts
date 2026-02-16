@@ -30,6 +30,7 @@ export type Profile = {
       prod_secret: string;
       prod_url: string;
     } | null;
+    is_demo: boolean;
     created_at: string;
   };
 };

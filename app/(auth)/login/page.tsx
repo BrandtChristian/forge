@@ -9,12 +9,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { isEmailAllowed, allowedDomains } from "@/lib/allowed-domains";
+import { Play, CircleNotch } from "@phosphor-icons/react";
+
+const DEMO_EMAIL = process.env.NEXT_PUBLIC_DEMO_EMAIL;
+const DEMO_PASSWORD = process.env.NEXT_PUBLIC_DEMO_PASSWORD;
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
   const router = useRouter();
 
   async function handleLogin(e: React.FormEvent) {
@@ -39,6 +44,26 @@ export default function LoginPage() {
     if (error) {
       setError(error.message);
       setLoading(false);
+    } else {
+      router.push("/");
+      router.refresh();
+    }
+  }
+
+  async function handleDemoLogin() {
+    if (!DEMO_EMAIL || !DEMO_PASSWORD) return;
+    setDemoLoading(true);
+    setError(null);
+
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithPassword({
+      email: DEMO_EMAIL,
+      password: DEMO_PASSWORD,
+    });
+
+    if (error) {
+      setError(error.message);
+      setDemoLoading(false);
     } else {
       router.push("/");
       router.refresh();
@@ -87,6 +112,36 @@ export default function LoginPage() {
             Sign up
           </Link>
         </p>
+
+        {DEMO_EMAIL && DEMO_PASSWORD && (
+          <>
+            <div className="relative mt-6">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">or</span>
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-4 w-full gap-2"
+              onClick={handleDemoLogin}
+              disabled={demoLoading}
+            >
+              {demoLoading ? (
+                <CircleNotch className="h-4 w-4 animate-spin" />
+              ) : (
+                <Play className="h-4 w-4" weight="fill" />
+              )}
+              {demoLoading ? "Loading demo..." : "Try the Demo"}
+            </Button>
+            <p className="mt-2 text-center text-xs text-muted-foreground">
+              Pre-loaded demo environment &mdash; explore freely
+            </p>
+          </>
+        )}
       </CardContent>
     </Card>
   );

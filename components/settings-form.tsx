@@ -96,9 +96,11 @@ type ConsentType = {
 export function SettingsForm({
   org,
   consentTypes: initialConsentTypes,
+  isDemo = false,
 }: {
   org: Org;
   consentTypes: ConsentType[];
+  isDemo?: boolean;
 }) {
   const [name, setName] = useState(org.name);
   const [emailProvider, setEmailProvider] = useState<"resend" | "agillic">(org.email_provider ?? "resend");
@@ -304,7 +306,8 @@ export function SettingsForm({
     }
   }
 
-  const isConnected = org.resend_api_key && domains.length > 0;
+  const isDemoConnected = isDemo && org.resend_api_key === "__demo_connected__";
+  const isConnected = isDemoConnected || (org.resend_api_key && domains.length > 0);
 
   async function toggleVersionHistory(consentTypeId: string) {
     if (expandedHistory === consentTypeId) {
@@ -396,9 +399,10 @@ export function SettingsForm({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
+                disabled={isDemo}
               />
             </div>
-            <Button type="submit" disabled={savingOrg}>
+            <Button type="submit" disabled={savingOrg || isDemo}>
               {savingOrg ? "Saving..." : "Save"}
             </Button>
           </CardContent>
@@ -417,7 +421,9 @@ export function SettingsForm({
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
+              disabled={isDemo}
               onClick={async () => {
+                if (isDemo) return;
                 setEmailProvider("resend");
                 const supabase = createClient();
                 await supabase
@@ -428,7 +434,7 @@ export function SettingsForm({
               }}
               className={`flex flex-col items-start gap-1 p-4 border text-left transition-colors hover:bg-muted/50 ${
                 emailProvider === "resend" ? "border-primary bg-muted/30" : ""
-              }`}
+              } ${isDemo ? "opacity-60 cursor-not-allowed" : ""}`}
             >
               <span className="font-medium text-sm">Resend</span>
               <span className="text-xs text-muted-foreground">
@@ -437,7 +443,9 @@ export function SettingsForm({
             </button>
             <button
               type="button"
+              disabled={isDemo}
               onClick={async () => {
+                if (isDemo) return;
                 setEmailProvider("agillic");
                 const supabase = createClient();
                 await supabase
@@ -448,7 +456,7 @@ export function SettingsForm({
               }}
               className={`flex flex-col items-start gap-1 p-4 border text-left transition-colors hover:bg-muted/50 ${
                 emailProvider === "agillic" ? "border-primary bg-muted/30" : ""
-              }`}
+              } ${isDemo ? "opacity-60 cursor-not-allowed" : ""}`}
             >
               <span className="font-medium text-sm">Agillic</span>
               <span className="text-xs text-muted-foreground">
@@ -706,44 +714,55 @@ export function SettingsForm({
         <CardContent className="grid gap-4">
           <div className="grid gap-2">
             <Label htmlFor="apiKey">Resend API Key</Label>
-            <div className="flex gap-2">
-              <Input
-                id="apiKey"
-                type="password"
-                placeholder="re_xxxxxxxxx"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                disabled={!!isConnected}
-                className="flex-1"
-              />
-              {isConnected ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleDisconnect}
-                >
-                  Disconnect
-                </Button>
-              ) : (
-                <Button
-                  type="button"
-                  onClick={handleConnect}
-                  disabled={connecting || !apiKey.trim()}
-                >
-                  {connecting ? (
-                    <>
-                      <CircleNotch className="mr-2 h-4 w-4 animate-spin" />
-                      Connecting...
-                    </>
+            {isDemoConnected ? (
+              <div className="flex items-center gap-2">
+                <div className="flex-1 flex items-center gap-2 px-3 py-2 bg-muted border text-sm text-muted-foreground">
+                  <ShieldCheck className="h-4 w-4 text-primary shrink-0" />
+                  <span>Pre-configured for demo &mdash; key hidden for security</span>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex gap-2">
+                  <Input
+                    id="apiKey"
+                    type="password"
+                    placeholder="re_xxxxxxxxx"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    disabled={!!isConnected}
+                    className="flex-1"
+                  />
+                  {isConnected ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleDisconnect}
+                    >
+                      Disconnect
+                    </Button>
                   ) : (
-                    "Connect"
+                    <Button
+                      type="button"
+                      onClick={handleConnect}
+                      disabled={connecting || !apiKey.trim()}
+                    >
+                      {connecting ? (
+                        <>
+                          <CircleNotch className="mr-2 h-4 w-4 animate-spin" />
+                          Connecting...
+                        </>
+                      ) : (
+                        "Connect"
+                      )}
+                    </Button>
                   )}
-                </Button>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Get your API key from resend.com/api-keys
-            </p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Get your API key from resend.com/api-keys
+                </p>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>
